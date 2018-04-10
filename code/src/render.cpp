@@ -852,7 +852,7 @@ glm::vec3 norms[] = {
 	glm::vec3(0.f,  0.f,  1.f)
 };
 
-glm::vec3 cubeVerts[] = {
+extern glm::vec3 cubeVerts[] = {
 	verts[1], verts[0], verts[2], verts[3],
 	verts[5], verts[6], verts[4], verts[7],
 	verts[1], verts[5], verts[0], verts[4],
