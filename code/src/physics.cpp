@@ -10,17 +10,28 @@
 
 
 #include <glm/gtx/quaternion.hpp>
- 
+
+
+
 
 glm::vec3 Pos;
 glm::mat3 Rot;
 glm::vec3 LinMom;
 glm::vec3 AngMom;
 glm::quat rotQuat;
+glm::vec3 Vel;
 
 glm::mat4 mattrans;
 glm::vec3 gravity = {0.f, -9.81f, 0.f};
-//float rot;
+glm::vec3 force01 = { -3.f, 4.f, 3.f };
+glm::vec3 AngularVel;
+
+float mass = 4.f;
+glm::vec3 torque;
+glm::vec3 FG;
+
+glm::mat3 ITensorInv;
+glm::mat3 IBody;
 
 namespace Cube {
 	extern void setupCube();
@@ -32,6 +43,8 @@ namespace Cube {
 
 void generateMatTrans();
 void ColisionBox(const glm::vec3 vertex);
+void ApplyForce01(double dt);
+
 
 bool show_test_window = false;
 void GUI() {
@@ -57,17 +70,28 @@ void GUI() {
 void PhysicsInit() {
 	Cube::setupCube();
 	Pos = { 0.f,8.f,0.f };
+	IBody = { (1 / 12.f * mass * 2), 0, 0,
+			0, (1 / 12.f * mass * 2), 0,
+			0, 0, (1 / 12.f * mass * 2) };
 
 	generateMatTrans();
-	/*rot = 0.f;*/
+	LinMom = force01;
+	FG = mass * gravity;
+	torque = glm::cross(Cube::cubeVerts[1], force01);
+	
 }
 
 void PhysicsUpdate(float dt) {
 	
-	Pos += dt * gravity;
-	/*rot += dt * 100;
-	rotQuat = glm::quat(cos(glm::radians(rot / 2)), 0, sin(glm::radians(rot / 2)) * 1, 0);*/
-
+	LinMom += dt * FG;
+	AngMom += dt*torque;
+	torque = glm::vec3(0);
+	Vel = LinMom / mass;
+	Pos += dt *	Vel;
+	ITensorInv = glm::toMat3(rotQuat)*glm::inverse(IBody)*glm::transpose(glm::toMat3(rotQuat));
+	AngularVel = ITensorInv*LinMom;
+	rotQuat = glm::normalize(rotQuat+dt*(glm::quat(0,AngularVel)*rotQuat));
+	//ApplyForce01(dt);
 	generateMatTrans();
 
 	for (int i = 0; i < 7; i++)
@@ -87,7 +111,7 @@ void generateMatTrans() {
 		0.f,0.f,1.f,0.f,
 		Pos.x,Pos.y,Pos.z,1.f,
 	};
-	mattrans = glm::toMat4(rotQuat) * matPos;
+	mattrans = matPos*glm::toMat4(rotQuat);
 }
 
 void ColisionBox(const glm::vec3 vertex)
@@ -114,8 +138,7 @@ void ColisionBox(const glm::vec3 vertex)
 
 	if (distantplaneY01 <= 0)
 	{
-		Pos = { 0.f, 0.f, 0.f }; // <--------------------------------------
-
+		//Pos = { 0.f, 0.5f, 0.f }; // <--------------------------------------
 	}
 
 	if (distantplaneY02 <= 0)
@@ -135,4 +158,9 @@ void ColisionBox(const glm::vec3 vertex)
 
 
 	}
+}
+
+
+void ApplyForce01(double dt) {
+	Pos.y = Pos.y + dt*force01.y;
 }
