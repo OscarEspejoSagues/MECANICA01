@@ -13,7 +13,7 @@
 
 
 
-
+glm::vec3 oldPos;
 glm::vec3 Pos;
 glm::mat3 Rot;
 glm::vec3 LinMom;
@@ -23,7 +23,7 @@ glm::vec3 Vel;
 
 glm::mat4 mattrans;
 glm::vec3 gravity = {0.f, -9.81f, 0.f};
-glm::vec3 force01 = { -3.f, 4.f, 3.f };
+glm::vec3 force01 = { -3.f, 4.f, 3.f }; //PEDAZO DE IDIOTAS ESTO TIENE QUE SER UN RANDOM <------------------------------------------------------------------------------------- !!! /!\  !!!
 glm::vec3 AngularVel;
 
 float mass = 4.f;
@@ -32,6 +32,8 @@ glm::vec3 FG;
 
 glm::mat3 ITensorInv;
 glm::mat3 IBody;
+
+const float tolerancia = 0.0001;
 
 namespace Cube {
 	extern void setupCube();
@@ -42,9 +44,9 @@ namespace Cube {
 }
 
 void generateMatTrans();
-void ColisionBox(const glm::vec3 vertex);
-void ApplyForce01(double dt);
-
+bool ColisionBox(const glm::vec3 vertex, float dt);
+void ApplyGravity(float dt);
+float BolzanoTime(float first, float last,glm::vec3 vertex);
 
 bool show_test_window = false;
 void GUI() {
@@ -70,6 +72,7 @@ void GUI() {
 void PhysicsInit() {
 	Cube::setupCube();
 	Pos = { 0.f,8.f,0.f };
+	oldPos = Pos;
 	IBody = { (1 / 12.f * mass * 2), 0, 0,
 			0, (1 / 12.f * mass * 2), 0,
 			0, 0, (1 / 12.f * mass * 2) };
@@ -82,20 +85,13 @@ void PhysicsInit() {
 }
 
 void PhysicsUpdate(float dt) {
-	
-	LinMom += dt * FG;
-	AngMom += dt*torque;
-	torque = glm::vec3(0);
-	Vel = LinMom / mass;
-	Pos += dt *	Vel;
-	ITensorInv = glm::toMat3(rotQuat)*glm::inverse(IBody)*glm::transpose(glm::toMat3(rotQuat));
-	AngularVel = ITensorInv*LinMom;
-	rotQuat = glm::normalize(rotQuat+dt*(glm::quat(0,AngularVel)*rotQuat));
-	//ApplyForce01(dt);
+	ApplyGravity(dt);
 	generateMatTrans();
 
+	float t = 0;
 	for (int i = 0; i < 7; i++)
-		ColisionBox(Pos+Cube::cubeVerts[i]);
+		if (ColisionBox(oldPos + Cube::cubeVerts[i], dt))
+			t = BolzanoTime(0, dt, oldPos + Cube::cubeVerts[i]);
 
 	Cube::updateCube(mattrans);
 }
@@ -114,8 +110,9 @@ void generateMatTrans() {
 	mattrans = matPos*glm::toMat4(rotQuat);
 }
 
-void ColisionBox(const glm::vec3 vertex)
+bool ColisionBox(const glm::vec3 preVertex, float dt)
 {
+	glm::vec3 vertex = preVertex; //CALUCLAR NOU VERTEX AMB ANTIC + DT <------------------------------------------------------------------------------------- !!! /!\  !!!
 
 	float distantplaneX01 = (vertex.x * 1) + 5; //distancia plano frontal
 	float distantplaneY01 = (vertex.y * 1); //plano inferior
@@ -128,39 +125,70 @@ void ColisionBox(const glm::vec3 vertex)
 																	//Rebotes planos frontales
 	if (distantplaneX01 <= 0) //frotal
 	{
-
+		return true;
 	}
 	if (distantplaneX02 <= 0)//trasero
 	{
-
+		return true;
 	}
 
 
 	if (distantplaneY01 <= 0)
 	{
-		//Pos = { 0.f, 0.5f, 0.f }; // <--------------------------------------
+		return true;
+
 	}
 
 	if (distantplaneY02 <= 0)
 	{
-
+		return true;
 	}
 
 
 	////Rebotes Planos Laterales
 	if (distantplaneZ01 <= 0)//derecha
 	{
+		return true;
 
 	}
 
 	if (distantplaneZ02 <= 0)//izquierda
 	{
-
+		return true;
 
 	}
+	return false;
 }
 
 
-void ApplyForce01(double dt) {
-	Pos.y = Pos.y + dt*force01.y;
+void ApplyGravity(float dt) {
+	LinMom += dt * FG;
+	AngMom += dt*torque;
+	torque = glm::vec3(0);
+	Vel = LinMom / mass;
+	oldPos = Pos;
+	Pos += dt *	Vel;
+	ITensorInv = glm::toMat3(rotQuat)*glm::inverse(IBody)*glm::transpose(glm::toMat3(rotQuat));
+	AngularVel = ITensorInv*LinMom;
+	rotQuat = glm::normalize(rotQuat + dt*(glm::quat(0, AngularVel)*rotQuat));
+}
+
+float BolzanoTime(float first, float last, const glm::vec3 vertex) {
+	float mid = first + (last - first) / 2;
+
+	if (last - first > tolerancia) {
+		if (ColisionBox(vertex,mid)) {
+			last = BolzanoTime(first, mid, vertex);
+		}
+		else {
+			first = BolzanoTime(mid, last, vertex);
+		}
+	}
+
+	if (last - first <= tolerancia){
+		return last;
+	}
+	else {
+		return mid;
+	}
 }

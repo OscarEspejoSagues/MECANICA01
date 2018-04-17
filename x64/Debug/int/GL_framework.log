@@ -1,5 +1,5 @@
 ﻿  physics.cpp
-d:\mecanicarepo\mecanica01\code\src\physics.cpp(165): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+     Creating library D:\mecanicarepo\MECANICA01\x64\Debug\GL_framework.lib and object D:\mecanicarepo\MECANICA01\x64\Debug\GL_framework.exp
   GL_framework.vcxproj -> D:\mecanicarepo\MECANICA01\x64\Debug\GL_framework.exe
   GL_framework.vcxproj -> D:\mecanicarepo\MECANICA01\x64\Debug\GL_framework.pdb (Partial PDB)
   0 File(s) copied
