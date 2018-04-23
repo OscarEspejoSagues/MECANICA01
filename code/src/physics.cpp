@@ -82,7 +82,6 @@ void PhysicsInit() {
 	LinMom = force01;
 	FG = mass * gravity;
 	torque = glm::cross(Cube::cubeVerts[1], force01);
-	
 }
 
 void PhysicsUpdate(float dt) {
@@ -97,7 +96,7 @@ void PhysicsUpdate(float dt) {
 			if (i == 1) {
 				glm::vec3 vertex = getVertex(t, i);
 				float distantplaneY01 = (vertex.y * 1); //plano inferior
-				std::cout << distantplaneY01 << " - " << t << "       "<<(prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i]).y <<std::endl;
+				std::cout << distantplaneY01 <<"                "<< t <<"             "<<(prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i]).y <<std::endl;
 			}
 			
 		}
@@ -133,8 +132,7 @@ glm::vec3 getVertex(float dt, int i) {
 	AngularVel = ITensorInv*LinMomT;
 	rotQuat = glm::normalize(preRotQuat + dt*(glm::quat(0, AngularVel)*preRotQuat));
 
-	vertex = prePos + glm::toMat3(rotQuat) * Cube::cubeVerts[i];
-
+	vertex = Pos + glm::toMat3(rotQuat) * Cube::cubeVerts[i]; //ESTE ES EL QUE HE CAMBIADO POR PRE POSITION EN VEZ DE POSITION
 	return vertex;
 }
 
@@ -208,6 +206,7 @@ void ApplyGravity(float dt) {
 	AngularVel = ITensorInv*LinMom;
 	preRotQuat = rotQuat;
 	rotQuat = glm::normalize(rotQuat + dt*(glm::quat(0, AngularVel)*rotQuat));
+
 }
 
 float BolzanoTime(float first, float last, const glm::vec3 vertex, int i) {
