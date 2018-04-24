@@ -1,5 +1,6 @@
 ﻿  physics.cpp
-d:\uni\mecanica\mecanica01\code\src\physics.cpp(37): warning C4305: 'inicializando': truncamiento de 'double' a 'float'
-  GL_framework.vcxproj -> D:\Uni\Mecanica\MECANICA01\x64\Debug\GL_framework.exe
-  0 archivo(s) copiado(s)
-  0 archivo(s) copiado(s)
+d:\mecanicarepo\mecanica01\code\src\physics.cpp(38): warning C4305: 'initializing': truncation from 'double' to 'float'
+  GL_framework.vcxproj -> D:\mecanicarepo\MECANICA01\x64\Debug\GL_framework.exe
+  GL_framework.vcxproj -> D:\mecanicarepo\MECANICA01\x64\Debug\GL_framework.pdb (Partial PDB)
+  0 File(s) copied
+  0 File(s) copied

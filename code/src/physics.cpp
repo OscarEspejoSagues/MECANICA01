@@ -28,6 +28,7 @@ glm::vec3 force01 = { -3.f, 6.f, 3.f }; //PEDAZO DE IDIOTAS ESTO TIENE QUE SER U
 glm::vec3 AngularVel;
 
 float mass = 4.f;
+float elasticity = 0.5f; 
 glm::vec3 torque;
 glm::vec3 FG;
 
@@ -49,6 +50,7 @@ bool ColisionBox(const glm::vec3 vertex, float dt, int i);
 void ApplyGravity(float dt);
 float BolzanoTime(float first, float last,glm::vec3 vertex, int i);
 glm::vec3 getVertex(float dt, int i);
+void rebote(glm::vec3 pos, glm::vec3 norm);
 
 bool show_test_window = false;
 void GUI() {
@@ -93,11 +95,11 @@ void PhysicsUpdate(float dt) {
 		if (ColisionBox(prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i], dt, i)) {
 			t = BolzanoTime(0, dt, prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i], i);
 
-			if (i == 1) {
-				glm::vec3 vertex = getVertex(t, i);
-				float distantplaneY01 = (vertex.y * 1); //plano inferior
-				std::cout << distantplaneY01 <<"                "<< t <<"             "<<(prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i]).y <<std::endl;
-			}
+			glm::vec3 vertex = getVertex(t, i);
+			//float distantplaneY01 = (vertex.y * 1); //plano inferior
+			//std::cout << distantplaneY01 <<"                "<< t <<"             "<<(prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i]).y <<std::endl;
+
+			rebote(prePos + glm::toMat3(preRotQuat) * vertex, {0,-1.f,0});
 			
 		}
 			
@@ -164,8 +166,8 @@ bool ColisionBox(const glm::vec3 preVertex, float dt, int i)
 
 	if (distantplaneY01 <= 0)
 	{
-		if (i == 1)
-			std::cout << "-------------------------------------------------------------------------------------------------------" << std::endl;
+		/*if (i == 1)
+			std::cout << "-------------------------------------------------------------------------------------------------------" << std::endl;*/
 		return true;
 
 	}
@@ -229,6 +231,15 @@ float BolzanoTime(float first, float last, const glm::vec3 vertex, int i) {
 	}
 }
 
-void rebote() {
-
+void rebote(glm::vec3 pos, glm::vec3 norm) {
+	float j;
+	glm::vec3 J;
+	float Vrel = glm::dot(norm, pos);
+	j = (-(1+ elasticity)*Vrel)/(1/mass+glm::dot(norm,glm::cross(pos, ITensorInv*glm::cross(pos, norm))));
+	J = j * norm;
+	glm::vec3 ImpulsTorque = glm::cross(pos, J);
+	glm::vec3 impulsPos = pos + J;
+	glm::vec3 impulsL = Vel + ImpulsTorque;
+	Pos += impulsPos;
+	AngMom += impulsL;
 }
