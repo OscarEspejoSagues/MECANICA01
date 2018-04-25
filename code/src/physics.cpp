@@ -25,7 +25,7 @@ glm::vec3 Vel;
 
 glm::mat4 mattrans;
 glm::vec3 gravity = { 0.f, -9.81f, 0.f };
-glm::vec3 force01 = { -3.f, 6.f, 3.f }; //PEDAZO DE IDIOTAS ESTO TIENE QUE SER UN RANDOM <------------------------------------------------------------------------------------- !!! /!\  !!!
+glm::vec3 force01 = { -6.f, 6.f, 3.f }; //PEDAZO DE IDIOTAS ESTO TIENE QUE SER UN RANDOM <------------------------------------------------------------------------------------- !!! /!\  !!!
 glm::vec3 AngularVel;
 
 float mass = 4.f;
@@ -52,8 +52,8 @@ void ApplyGravity(float dt);
 float BolzanoTime(float first, float last, int i);
 glm::vec3 getVertex(float dt, int i);
 glm::vec3 getLocalVertex(float dt, int i);
-void rebote(glm::vec3 pos, glm::vec3 norm);
-
+void rebote(glm::vec3 posLocal, glm::vec3 norm);
+glm::vec3 updatePos(float dt);
 
 bool show_test_window = false;
 void GUI() {
@@ -84,7 +84,7 @@ void PhysicsInit() {
 		0, 0, (1 / 12.f * mass * 2) };
 
 	generateMatTrans();
-	LinMom = force01;
+	AngMom = force01;
 	FG = mass * gravity;
 	torque = glm::cross(Cube::cubeVerts[1], force01);
 }
@@ -93,18 +93,21 @@ void PhysicsUpdate(float dt) {
 	
 	ApplyGravity(dt);
 	generateMatTrans();
-
+	std::cout << "++++ Vel_y: " << Vel.y << " ++++ LinMom:"<<LinMom.y<<" ++++ " << std::endl;
 	float t = 0;
 	for (int i = 0; i < 7; i++) {
 		if (ColisionBox(dt, i)) {
 			t = BolzanoTime(0, dt, i);
-
+			std::cout << t << std::endl;
+			
 			glm::vec3 vertex = getLocalVertex(t, i);
+			Pos = updatePos(t);
+
 			std::cout << "PrePos: " << (prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i]).x << ", " << (prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i]).y << ", " << (prePos + glm::toMat3(preRotQuat) * Cube::cubeVerts[i]).z << std::endl;
 			std::cout << "Pos: " << getVertex(t, i).x << ", " << getVertex(t, i).y << ", " << getVertex(t, i).z << std::endl;
 			std::cout << "LocalPos: " << vertex.x << ", " << vertex.y << ", " << vertex.z << std::endl;
-
 			rebote(vertex, { 0, 1.f,0 });
+			
 			break;
 
 		}
@@ -117,6 +120,16 @@ void PhysicsUpdate(float dt) {
 
 void PhysicsCleanup() {
 	Cube::cleanupCube();
+}
+
+glm::vec3 updatePos(float dt) { //ALERTA MODIFICA VALORS DE VEL I LINMOM /!\ 
+	glm::vec3 p_temp;
+	LinMom = preLinMom + dt * FG;
+	Vel = LinMom / mass;
+	p_temp = prePos + dt *	Vel;
+	std::cout << "---- LinMom: " << LinMom.y << " ----- PreLinMom: " << preLinMom.y << " ------ "<<std::endl;
+
+	return p_temp;
 }
 
 void generateMatTrans() {
@@ -132,23 +145,23 @@ void generateMatTrans() {
 
 glm::vec3 getVertex(float dt, int i) {
 	glm::vec3 vertex;
-
-	LinMom = preLinMom +  dt * FG;
-	Vel = LinMom / mass;
-	Pos = prePos + dt *	Vel;
+	glm::vec3 LinMomT = preLinMom + dt * FG;
+	glm::vec3 AngMomT = AngMom + dt*torque;
+	glm::vec3 VelT = LinMomT / mass;
+	glm::vec3 PosT = prePos + dt *	VelT;
 	ITensorInv = glm::toMat3(preRotQuat)*glm::inverse(IBody)*glm::transpose(glm::toMat3(preRotQuat));
-	AngularVel = ITensorInv*LinMom;
+	AngularVel = ITensorInv*AngMomT;
 	rotQuat = glm::normalize(preRotQuat + dt*(glm::quat(0, AngularVel)*preRotQuat));
 
-	vertex = Pos + glm::toMat3(rotQuat) * Cube::cubeVerts[i];
+	vertex = PosT + glm::toMat3(rotQuat) * Cube::cubeVerts[i]; //ESTE ES EL QUE HE CAMBIADO POR PRE POSITION EN VEZ DE POSITION
 	return vertex;
 }
 
 glm::vec3 getLocalVertex(float dt, int i) {
 	glm::vec3 vertex;
-
+	glm::vec3 AngMomT = AngMom + dt*torque;
 	ITensorInv = glm::toMat3(preRotQuat)*glm::inverse(IBody)*glm::transpose(glm::toMat3(preRotQuat));
-	AngularVel = ITensorInv*LinMom;
+	AngularVel = ITensorInv*AngMomT;
 	rotQuat = glm::normalize(preRotQuat + dt*(glm::quat(0, AngularVel)*preRotQuat));
 
 	vertex = glm::toMat3(rotQuat) * Cube::cubeVerts[i];
@@ -223,10 +236,9 @@ void ApplyGravity(float dt) {
 	prePos = Pos;
 	Pos += dt *	Vel;
 	ITensorInv = glm::toMat3(rotQuat)*glm::inverse(IBody)*glm::transpose(glm::toMat3(rotQuat));
-	AngularVel = ITensorInv*LinMom;
+	AngularVel = ITensorInv*AngMom;
 	preRotQuat = rotQuat;
 	rotQuat = glm::normalize(rotQuat + dt*(glm::quat(0, AngularVel)*rotQuat));
-
 }
 
 float BolzanoTime(float first, float last, int i) {
@@ -249,18 +261,18 @@ float BolzanoTime(float first, float last, int i) {
 	}
 }
 
-void rebote(glm::vec3 pos, glm::vec3 norm) {
-	
+void rebote(glm::vec3 posLocal, glm::vec3 norm) {
+
+	std::cout << "11111 - " << LinMom.y << std::endl;
 	float j;
-	glm::vec3 Deri = Vel + glm::cross(AngularVel, LinMom - Pos);
+	glm::vec3 Deri = Vel + glm::cross(AngularVel, posLocal);
 	glm::vec3 J;
 	float Vrel = glm::dot(norm, Deri);
-	j = (-(1 + elasticity)*Vrel) / (1 / mass + glm::dot(norm, glm::cross(pos, ITensorInv*glm::cross(pos, norm))));
+	j = (-(1 + elasticity)*Vrel) / (1 / mass + glm::dot(norm, glm::cross(posLocal, ITensorInv*glm::cross(posLocal, norm))));
 	J = j * norm;
-	glm::vec3 ImpulsTorque = glm::cross(pos, J);
-	glm::vec3 impulsPos = pos + J;
-	glm::vec3 impulsL = Vel + ImpulsTorque;
-	LinMom = impulsPos;
-	AngMom += impulsL;
-	torque = glm::cross(pos, ImpulsTorque);
+	glm::vec3 ImpulsTorque = glm::cross(posLocal, J);
+
+	LinMom += J;
+	std::cout << "22222 - " << LinMom.y << std::endl;
+	AngMom += ImpulsTorque;
 }
